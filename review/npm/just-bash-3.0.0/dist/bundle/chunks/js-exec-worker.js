@@ -1476,8 +1476,8 @@ var Size = {
   // 8MB limit for FS read/write, HTTP responses, and tool invocation results.
   // Sized to handle typical OpenAPI/GraphQL responses (paginated lists, batch queries).
   // Still well under the 64MB QuickJS memory limit per execution.
-  DATA_BUFFER: 8388608,
-  TOTAL: 8392736,
+  DATA_BUFFER: 104857600,
+  TOTAL: 104861728,
   // 32 + 4096 + 8MB
 };
 var Flags = {

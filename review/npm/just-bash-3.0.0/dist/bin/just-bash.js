@@ -8282,7 +8282,10 @@ async function yi(e, t, s) {
       y = d === t.commands.length - 1,
       p = d === 0;
     c && ((e.state.lastArg = ""), p || (e.state.groupStdin = void 0));
-    let $ = c && (!y || !e.state.shoptOptions.lastpipe) ? new Map(e.state.env) : null,
+    let $ =
+        c && (!y || !e.state.shoptOptions.lastpipe)
+          ? { env: new Map(e.state.env), cwd: e.state.cwd }
+          : null,
       g;
     try {
       g = await s(h, r);
@@ -8292,9 +8295,9 @@ async function yi(e, t, s) {
         g = { stdout: b.stdout, stderr: b.stderr, exitCode: b.exitCode };
       else if (b instanceof pe && t.commands.length > 1)
         g = { stdout: b.stdout, stderr: b.stderr, exitCode: b.exitCode };
-      else throw ($ && (e.state.env = $), b);
+      else throw ($ && ((e.state.env = $.env), (e.state.cwd = $.cwd)), b);
     }
-    $ && (e.state.env = $),
+    $ && ((e.state.env = $.env), (e.state.cwd = $.cwd)),
       o.push(g.exitCode),
       g.exitCode !== 0 && (a = g.exitCode),
       y

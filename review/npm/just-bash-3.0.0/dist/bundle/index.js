@@ -8307,7 +8307,10 @@ async function Ti(e, t, s) {
       y = d === t.commands.length - 1,
       h = d === 0;
     c && ((e.state.lastArg = ""), h || (e.state.groupStdin = void 0));
-    let E = c && (!y || !e.state.shoptOptions.lastpipe) ? new Map(e.state.env) : null,
+    let E =
+        c && (!y || !e.state.shoptOptions.lastpipe)
+          ? { env: new Map(e.state.env), cwd: e.state.cwd }
+          : null,
       g;
     try {
       g = await s(p, n);
@@ -8317,9 +8320,9 @@ async function Ti(e, t, s) {
         g = { stdout: b.stdout, stderr: b.stderr, exitCode: b.exitCode };
       else if (b instanceof we && t.commands.length > 1)
         g = { stdout: b.stdout, stderr: b.stderr, exitCode: b.exitCode };
-      else throw (E && (e.state.env = E), b);
+      else throw (E && ((e.state.env = E.env), (e.state.cwd = E.cwd)), b);
     }
-    E && (e.state.env = E),
+    E && ((e.state.env = E.env), (e.state.cwd = E.cwd)),
       a.push(g.exitCode),
       g.exitCode !== 0 && (o = g.exitCode),
       y
