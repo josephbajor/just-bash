@@ -1,1 +1,2 @@
 packages/just-bash/vendor/cpython-emscripten/python.wasm filter=lfs diff=lfs merge=lfs -text
+review/npm/** linguist-generated=false linguist-vendored=false

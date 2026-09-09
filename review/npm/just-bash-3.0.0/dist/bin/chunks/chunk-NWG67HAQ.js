@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+import { a as s } from "./chunk-575DV2PL.js";
+var a = s("sha1sum", "sha1", "compute SHA1 message digest"),
+  m = { name: "sha1sum", flags: [{ flag: "-c", type: "boolean" }], needsFiles: !0 };
+export { a, m as b };
