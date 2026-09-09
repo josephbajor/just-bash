@@ -35,14 +35,26 @@ function visit(dir) {
     if (!entry.isFile() || !/\.(?:[cm]?js|json)$/.test(entry.name)) continue;
     const source = fs.readFileSync(filename, "utf8");
     const isJson = filename.endsWith(".json");
-    const formatted = prettier.format(source, {
+    const options = {
       parser: isJson ? "json" : "babel",
       printWidth: 100,
       tabWidth: 2,
       trailingComma: "all",
       embeddedLanguageFormatting: "off",
       endOfLine: "lf",
-    });
+    };
+    // Some minified method chains need a second pass to reach stable layout.
+    let formatted = source;
+    let stable = false;
+    for (let pass = 0; pass < 4; pass++) {
+      const next = prettier.format(formatted, options);
+      if (next === formatted) {
+        stable = true;
+        break;
+      }
+      formatted = next;
+    }
+    assert.ok(stable, `Formatting did not converge: ${filename}`);
     if (isJson) {
       assert.deepEqual(JSON.parse(formatted), JSON.parse(source), filename);
     } else {

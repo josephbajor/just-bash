@@ -23,7 +23,8 @@ compares JavaScript ASTs with source locations, comments, formatting metadata,
 and redundant empty statements in statement lists removed, and compares parsed
 JSON values before writing each file. Empty loop bodies remain checked. Template
 literal values remain part of that comparison. Embedded-language formatting is
-disabled.
+disabled. Formatting runs until the layout is stable, because a few minified
+method chains need a second pass.
 
 ## Source context
 
