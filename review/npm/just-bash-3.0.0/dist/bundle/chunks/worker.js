@@ -1519,8 +1519,8 @@ var Size = {
   // 8MB limit for FS read/write, HTTP responses, and tool invocation results.
   // Sized to handle typical OpenAPI/GraphQL responses (paginated lists, batch queries).
   // Still well under the 64MB QuickJS memory limit per execution.
-  DATA_BUFFER: 8388608,
-  TOTAL: 8392736,
+  DATA_BUFFER: 104857600,
+  TOTAL: 104861728,
   // 32 + 4096 + 8MB
 };
 var Flags = {
@@ -2214,26 +2214,29 @@ function createHOSTFS(backend, FS, PATH) {
           }
         }
         stream.hostContent = content;
+        stream.hostLength = content.length;
         stream.hostModified = isTruncate && isWrite;
         stream.hostPath = path;
         if (isAppend) {
-          stream.position = content.length;
+          stream.position = stream.hostLength;
         }
       },
       close(stream) {
         const hostPath = stream.hostPath;
         const hostContent = stream.hostContent;
         if (stream.hostModified && hostContent && hostPath) {
-          tryFSOperation(() => backend.writeFile(hostPath, hostContent));
+          const hostLength = stream.hostLength ?? hostContent.length;
+          tryFSOperation(() => backend.writeFile(hostPath, hostContent.subarray(0, hostLength)));
         }
         delete stream.hostContent;
+        delete stream.hostLength;
         delete stream.hostModified;
         delete stream.hostPath;
       },
       read(stream, buffer, offset, length, position) {
         const content = stream.hostContent;
         if (!content) return 0;
-        const size = content.length;
+        const size = stream.hostLength ?? content.length;
         if (position >= size) return 0;
         const bytesToRead = Math.min(length, size - position);
         buffer.set(content.subarray(position, position + bytesToRead), offset);
@@ -2241,14 +2244,20 @@ function createHOSTFS(backend, FS, PATH) {
       },
       write(stream, buffer, offset, length, position) {
         let content = stream.hostContent || new Uint8Array(0);
-        const newSize = Math.max(content.length, position + length);
-        if (newSize > content.length) {
-          const newContent = new Uint8Array(newSize);
-          newContent.set(content);
+        const currentLength = stream.hostLength ?? content.length;
+        const newLength = Math.max(currentLength, position + length);
+        if (newLength > content.length) {
+          // Grow capacity geometrically: hostContent is a capacity buffer and
+          // hostLength the logical file size, so a sequence of small writes
+          // (e.g. json.dump) costs O(n) copying instead of O(n^2).
+          const newCapacity = Math.max(newLength, content.length * 2, 65536);
+          const newContent = new Uint8Array(newCapacity);
+          newContent.set(content.subarray(0, currentLength));
           content = newContent;
           stream.hostContent = content;
         }
         content.set(buffer.subarray(offset, offset + length), position);
+        stream.hostLength = newLength;
         stream.hostModified = true;
         return length;
       },
@@ -2261,7 +2270,7 @@ function createHOSTFS(backend, FS, PATH) {
         } else if (whence === SEEK_END) {
           if (FS.isFile(stream.node.mode)) {
             const content = stream.hostContent;
-            position += content ? content.length : 0;
+            position += content ? stream.hostLength ?? content.length : 0;
           }
         }
         if (position < 0) {
@@ -2854,6 +2863,11 @@ async function runPython(input) {
     });
     Module = await createPythonModule({
       noInitialRun: true,
+      // Pin the program name. Emscripten otherwise uses process.argv[1] (this
+      // worker's absolute path) as argv[0]/$_ inside the WASM, and certain path
+      // lengths corrupt CPython state ("gilstate_tss_clear: failed to clear
+      // current tstate" at finalization). pnpm's patched install path hits it.
+      thisProgram: "python3",
       preRun: [onPreRun],
       print: onPrint,
       printErr: onPrintErr,
@@ -2893,6 +2907,9 @@ async function runPython(input) {
   }
   const setupCode = generateSetupCode(input);
   const httpBridgeCode = generateHttpBridgeCode();
+  // Compile user code separately: indenting it into this try block changes
+  // multiline string contents (including strings used to patch Python files).
+  // Cache the original source so tracebacks show its own filename and lines.
   const wrappedCode = `
 import sys
 _jb_exit_code = 0
@@ -2905,10 +2922,11 @@ ${httpBridgeCode
   .split("\n")
   .map((line) => `    ${line}`)
   .join("\n")}
-${input.pythonCode
-  .split("\n")
-  .map((line) => `    ${line}`)
-  .join("\n")}
+    import linecache as _jb_linecache
+    _jb_source = ${JSON.stringify(input.pythonCode)}
+    _jb_filename = ${JSON.stringify(input.scriptPath || "<exec>")}
+    _jb_linecache.cache[_jb_filename] = (len(_jb_source), None, _jb_source.splitlines(True), _jb_filename)
+    exec(compile(_jb_source, _jb_filename, "exec"), globals(), globals())
 except SystemExit as e:
     _jb_exit_code = e.code if isinstance(e.code, int) else (1 if e.code else 0)
 except Exception as e:

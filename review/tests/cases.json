@@ -1,0 +1,48 @@
+{
+  "cwd": [
+    {
+      "name": "isolates cd in the first stage from later commands",
+      "command": "cd /work | cat; pwd; echo \"$PWD\"; cat input/data.txt",
+      "stdout": "/\n/\ninput\n"
+    },
+    {
+      "name": "isolates cd from the next pipeline stage",
+      "command": "cd /work | pwd; pwd",
+      "stdout": "/\n/\n"
+    },
+    {
+      "name": "isolates cd in the last stage by default",
+      "command": "echo data | cd /work; pwd; echo \"$PWD\"",
+      "stdout": "/\n/\n"
+    },
+    {
+      "name": "keeps a brace group's cd inside its pipeline stage",
+      "command": "{ cd /work; pwd; } | cat; pwd",
+      "stdout": "/work\n/\n"
+    },
+    {
+      "name": "restores cwd when a pipeline stage exits with an error",
+      "command": "{ cd /work; exit 7; } | cat; status=$?; pwd; echo \"$PWD\"; echo \"$status\"",
+      "stdout": "/\n/\n7\n"
+    },
+    {
+      "name": "preserves the last stage's cd when lastpipe is explicitly enabled",
+      "command": "shopt -s lastpipe; echo data | cd /work; pwd; echo \"$PWD\"; cat data.txt",
+      "stdout": "/work\n/work\nwork\n"
+    },
+    {
+      "name": "still isolates earlier stages when lastpipe is enabled",
+      "command": "shopt -s lastpipe; cd /work | pwd; pwd; echo \"$PWD\"",
+      "stdout": "/\n/\n/\n"
+    }
+  ],
+  "python": {
+    "literals": "\nimport json\nvalues = [\n    \"\"\"first\nsecond\n    nested\n\nlast\"\"\",\n    r'''path\\to\\file\n'quoted' \"double\"\nC:\\temp''',\n    f\"\"\"count={2}\nnext={3}\"\"\",\n    \"\"\"Unicode: café 🐍\ntabs:\\tend\"\"\",\n    \"left\\\nright\",\n]\nprint(json.dumps(values, ensure_ascii=False))\n",
+    "patch": "\nsource = 'if True:\\n    print(\"first\")\\n'\nsource = source.replace('    print(\"first\")', '''    print(\"first\")\n    print(\"second\")''')\nwith open('/work/generated.py', 'w') as f:\n    f.write(source)\nexec(compile(source, '/work/generated.py', 'exec'))\n",
+    "context": "\"\"\"module documentation\nsecond line\"\"\"\nfrom __future__ import annotations\nimport sys\nvalue = 41\ndef answer() -> NotDefined:\n    return value + 1\nassert __name__ == '__main__'\nassert __doc__ == 'module documentation\\nsecond line'\nassert sys.argv[1:] == ['argument']\nassert answer.__annotations__['return'] == 'NotDefined'\nprint(answer())\n",
+    "runtime_error": "value = 1\nraise ValueError(\"source error\")\n",
+    "syntax_error": "if True:\nprint(\"missing indentation\")\n",
+    "exit_zero": "import sys\nprint(\"before exit\")\nsys.exit(0)\n",
+    "exit_seven": "import sys\nprint(\"before exit\")\nsys.exit(7)\n"
+  }
+}

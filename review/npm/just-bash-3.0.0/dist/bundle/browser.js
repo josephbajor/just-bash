@@ -53166,7 +53166,10 @@ async function m7(e, t, n) {
       d = p === t.commands.length - 1,
       m = p === 0;
     c && ((e.state.lastArg = ""), m || (e.state.groupStdin = void 0));
-    let y = c && (!d || !e.state.shoptOptions.lastpipe) ? new Map(e.state.env) : null,
+    let y =
+        c && (!d || !e.state.shoptOptions.lastpipe)
+          ? { env: new Map(e.state.env), cwd: e.state.cwd }
+          : null,
       b;
     try {
       b = await n(h, s);
@@ -53176,9 +53179,9 @@ async function m7(e, t, n) {
         b = { stdout: w.stdout, stderr: w.stderr, exitCode: w.exitCode };
       else if (w instanceof Ht && t.commands.length > 1)
         b = { stdout: w.stdout, stderr: w.stderr, exitCode: w.exitCode };
-      else throw (y && (e.state.env = y), w);
+      else throw (y && ((e.state.env = y.env), (e.state.cwd = y.cwd)), w);
     }
-    y && (e.state.env = y),
+    y && ((e.state.env = y.env), (e.state.cwd = y.cwd)),
       a.push(b.exitCode),
       b.exitCode !== 0 && (o = b.exitCode),
       d

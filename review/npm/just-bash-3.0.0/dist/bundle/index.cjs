@@ -52997,7 +52997,7 @@ var Mt,
         PATH_BUFFER: 32,
         DATA_BUFFER: 4128,
       }),
-      (no = { CONTROL_REGION: 32, PATH_BUFFER: 4096, DATA_BUFFER: 8388608, TOTAL: 8392736 }),
+      (no = { CONTROL_REGION: 32, PATH_BUFFER: 4096, DATA_BUFFER: 104857600, TOTAL: 104861728 }),
       (oc = { NONE: 0, RECURSIVE: 1, FORCE: 2, MKDIR_RECURSIVE: 1 }),
       (yr = { IS_FILE: 0, IS_DIRECTORY: 1, IS_SYMLINK: 2, MODE: 4, SIZE: 8, MTIME: 16, TOTAL: 24 });
     gh = class {
@@ -73356,7 +73356,10 @@ async function jT(t, e, n) {
       m = h === e.commands.length - 1,
       d = h === 0;
     c && ((t.state.lastArg = ""), d || (t.state.groupStdin = void 0));
-    let y = c && (!m || !t.state.shoptOptions.lastpipe) ? new Map(t.state.env) : null,
+    let y =
+        c && (!m || !t.state.shoptOptions.lastpipe)
+          ? { env: new Map(t.state.env), cwd: t.state.cwd }
+          : null,
       w;
     try {
       w = await n(p, s);
@@ -73366,9 +73369,9 @@ async function jT(t, e, n) {
         w = { stdout: b.stdout, stderr: b.stderr, exitCode: b.exitCode };
       else if (b instanceof Vn && e.commands.length > 1)
         w = { stdout: b.stdout, stderr: b.stderr, exitCode: b.exitCode };
-      else throw (y && (t.state.env = y), b);
+      else throw (y && ((t.state.env = y.env), (t.state.cwd = y.cwd)), b);
     }
-    y && (t.state.env = y),
+    y && ((t.state.env = y.env), (t.state.cwd = y.cwd)),
       a.push(w.exitCode),
       w.exitCode !== 0 && (o = w.exitCode),
       m
