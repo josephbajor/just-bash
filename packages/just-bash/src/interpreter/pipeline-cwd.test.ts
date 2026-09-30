@@ -15,6 +15,23 @@ function createBash() {
 }
 
 describe("pipeline working directory isolation", () => {
+  it("preserves the previous directory after a subshell cd", async () => {
+    const bash = createBash();
+    const result = await bash.exec("cd /; cd /work; cd child | cat; cd -; pwd");
+    expect(result).toMatchObject({ stdout: "/\n/\n", stderr: "", exitCode: 0 });
+  });
+
+  it("isolates pushd and popd changes from the parent directory stack", async () => {
+    const bash = createBash();
+    const result = await bash.exec(
+      "pushd child >/dev/null; popd | cat >/dev/null; dirs; pushd / | cat >/dev/null; dirs; popd >/dev/null; pwd",
+    );
+    expect(result).toMatchObject({
+      stdout: "/work/child /work\n/work/child /work\n/work\n",
+      stderr: "",
+      exitCode: 0,
+    });
+  });
   it.each([
     "cd child | cat",
     "echo input | cd child",

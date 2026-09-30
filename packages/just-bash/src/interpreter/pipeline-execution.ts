@@ -90,6 +90,10 @@ export async function executePipeline(
     const savedEnv = runsInSubshell ? new Map(ctx.state.env) : null;
     const savedArrays = runsInSubshell ? cloneArrays(ctx.state.arrays) : null;
     const savedCwd = ctx.state.cwd;
+    const savedPreviousDir = ctx.state.previousDir;
+    const savedDirectoryStack = runsInSubshell
+      ? ctx.state.directoryStack?.slice()
+      : undefined;
 
     let result: ExecResult;
     const outputCheckpoint = ctx.executionScope.outputBytesUsed;
@@ -144,6 +148,8 @@ export async function executePipeline(
         ctx.state.env = savedEnv;
         ctx.state.arrays = savedArrays ?? new Map();
         ctx.state.cwd = savedCwd;
+        ctx.state.previousDir = savedPreviousDir;
+        ctx.state.directoryStack = savedDirectoryStack;
       }
     }
 
