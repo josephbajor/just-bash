@@ -97,11 +97,31 @@ for (const mode of ["stdin", "-c", "file"] as const) {
       const result = await execute('print("before")\n  print("invalid")');
       expect(result.stdout).toBe("");
       expect(result.exitCode).toBe(1);
-      // The wrapper has its own traceback frame; check the complete user diagnostic.
       const stderr = stripVTControlCharacters(result.stderr);
-      expect(stderr.slice(stderr.lastIndexOf("  File "))).toBe(
+      expect(stderr).toBe(
         `  File "${filename}", line 2\n    print("invalid")\nIndentationError: unexpected indent\n`,
       );
+    });
+    it.each([
+      "\n",
+      "\r\n",
+      "\r",
+    ])("caches physical source lines with %j newlines", async (newline) => {
+      const source = [
+        'text = "a\u2028b\u2029c\u0085d"',
+        "import linecache",
+        "try:",
+        "    1 / 0",
+        "except ZeroDivisionError as error:",
+        "    frame = error.__traceback__",
+        "    print(frame.tb_lineno)",
+        "    print(repr(linecache.getline(frame.tb_frame.f_code.co_filename, frame.tb_lineno)))",
+      ].join(newline);
+      expect(await execute(source)).toMatchObject({
+        stdout: "4\n'    1 / 0\\n'\n",
+        stderr: "",
+        exitCode: 0,
+      });
     });
   });
 }

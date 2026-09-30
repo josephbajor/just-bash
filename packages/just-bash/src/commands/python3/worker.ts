@@ -1442,8 +1442,18 @@ ${httpBridgeCode
     import linecache as _jb_linecache
     _jb_source = ${JSON.stringify(input.pythonCode)}
     _jb_filename = ${JSON.stringify(sourceFilename)}
-    _jb_linecache.cache[_jb_filename] = (len(_jb_source), None, _jb_source.splitlines(True), _jb_filename)
-    exec(compile(_jb_source, _jb_filename, "exec"), globals(), globals())
+    _jb_lines = _jb_source.replace("\\r\\n", "\\n").replace("\\r", "\\n").split("\\n")
+    if _jb_lines[-1] == "":
+        _jb_lines.pop()
+    _jb_linecache.cache[_jb_filename] = (len(_jb_source), None, [line + "\\n" for line in _jb_lines], _jb_filename)
+    try:
+        _jb_code = compile(_jb_source, _jb_filename, "exec")
+    except SyntaxError as e:
+        import traceback
+        traceback.print_exception(type(e), e, None)
+        _jb_exit_code = 1
+    else:
+        exec(_jb_code, globals(), globals())
 except SystemExit as e:
     _jb_exit_code = e.code if isinstance(e.code, int) else (1 if e.code else 0)
 except Exception as e:
